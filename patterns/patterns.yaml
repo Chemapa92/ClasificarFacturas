@@ -1,0 +1,10 @@
+Tipo_1:
+  proveedor_regex: "(ACME\\s+GASOLINERA\\s+S\\.?A\\.?)"
+  fecha_regex: "(\\d{2}/\\d{2}/\\d{4})"
+  fecha_out_format: "%d/%m/%Y"
+  numero_regex: "Factura\\s*(?:nº|num\\.?|No\\.?):?\\s*([A-Z0-9-]+)"
+Tipo_2:
+  proveedor_regex: "(HIDROCARBUROS\\s+DEL\\s+SUR)"
+  fecha_regex: "(\\d{4}-\\d{2}-\\d{2})"
+  fecha_out_format: "%Y-%m-%d"
+  numero_regex: "N.?\\s*Factura\\s*[:#]?\\s*([A-Z0-9/.-]+)"

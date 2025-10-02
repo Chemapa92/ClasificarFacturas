@@ -1,7 +1,8 @@
 from pathlib import Path
-import fitz
+from pypdf import PdfReader
 import pytesseract
 from PIL import Image
+from pdf2image import convert_from_path
 
 
 def extract_text_safely(path: Path) -> str:
@@ -15,19 +16,24 @@ def extract_text_safely(path: Path) -> str:
 
 
 def extract_text_pdf(pdf_path: Path) -> str:
-	doc = fitz.open(pdf_path)
-	text = []
-	for page in doc:
-		t = page.get_text("text")
-		if t and len(t.strip()) > 20:
-			text.append(t)
-		else:
-			pix = page.get_pixmap(dpi=200)
-			img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-			t_ocr = pytesseract.image_to_string(img, lang="spa")
-			text.append(t_ocr)
-	doc.close()
-	return "\n".join(text)
+	# Try native text via pypdf
+	try:
+		reader = PdfReader(str(pdf_path))
+		buf = []
+		for page in reader.pages:
+			content = page.extract_text() or ""
+			buf.append(content)
+		text = "\n".join(buf).strip()
+		if len(text) >= 20:
+			return text
+	except Exception:
+		pass
+	# OCR fallback: rasterize pages with pdf2image (Poppler required on Windows)
+	images = convert_from_path(str(pdf_path), dpi=200)
+	ocr_text = []
+	for img in images:
+		ocr_text.append(pytesseract.image_to_string(img, lang="spa"))
+	return "\n".join(ocr_text)
 
 
 def extract_text_image(img_path: Path) -> str:

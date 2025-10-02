@@ -1,18 +1,14 @@
 from pathlib import Path
 import shutil
-import fitz  # PyMuPDF
 from PIL import Image
 import imagehash
 from tqdm import tqdm
+from pdf2image import convert_from_path
 
 
 def pdf_first_page_image(pdf_path: Path) -> Image.Image:
-	doc = fitz.open(pdf_path)
-	page = doc[0]
-	pix = page.get_pixmap(dpi=150)
-	img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-	doc.close()
-	return img
+	images = convert_from_path(str(pdf_path), dpi=150, first_page=1, last_page=1)
+	return images[0]
 
 
 def file_to_phash(path: Path):

@@ -1,11 +1,12 @@
 from pathlib import Path
 import shutil
-import pandas as pd
+import json
 
 
-def rename_and_route_all(renombradas_dir: Path, proveedores_xlsx: Path, estaciones_root: Path, pendientes_dir: Path):
-	df = pd.read_excel(proveedores_xlsx, sheet_name="Proveedores")
-	providers = {row["Proveedor"].upper(): row["EstacionDestino"] for _, row in df.iterrows()}
+def rename_and_route_all(renombradas_dir: Path, providers_json: Path, estaciones_root: Path, pendientes_dir: Path):
+	with open(providers_json, "r", encoding="utf-8") as f:
+		providers_list = json.load(f)
+	providers = {row["Proveedor"].upper(): row["EstacionDestino"] for row in providers_list}
 
 	for f in renombradas_dir.glob("*"):
 		parts = f.stem.split("_")

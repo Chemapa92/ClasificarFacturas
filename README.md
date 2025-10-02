@@ -2,7 +2,7 @@
 
 Sistema de clasificación automática de facturas (Windows-friendly) para:
 - Agrupar facturas iguales por tipo (Tipo_1, Tipo_2, ...)
-- Vincular tipo ↔ proveedor desde Excel
+- Vincular tipo ↔ proveedor desde Excel (fuente) → JSON (cache)
 - Extraer fecha, proveedor y número de factura por patrones
 - Renombrar a YYYYMMDD_Proveedor_NumFactura.pdf
 - Enrutar a carpeta de estación o a Pendientes_de_identificar
@@ -18,15 +18,17 @@ facturas-classifier/
 │  │  ├─ renombradas/         # Archivos ya renombrados
 │  │  ├─ estaciones/          # Carpeta final por estación
 │  │  └─ Pendientes_de_identificar/
-│  └─ proveedores.xlsx        # Mapa Proveedor, CIF, Estación
+│  ├─ Proveedores/            # Excel original (hoja Proveedores)
+│  └─ providers.json          # Cache normalizada generada desde Excel
 ├─ patterns/
 │  └─ patterns.yaml           # Patrones por Tipo_x: fecha, nombre, num
 ├─ src/
 │  ├─ cluster.py              # Detección de “facturas iguales” (pHash/visual)
-│  ├─ text_extract.py         # Texto (PyMuPDF) + OCR (Tesseract) fallback
-│  ├─ link_providers.py       # Vincula tipo con proveedor (Excel + texto)
+│  ├─ text_extract.py         # Texto (PyPDF) + OCR (Tesseract) fallback
+│  ├─ link_providers.py       # Vincula tipo con proveedor (usa providers.json)
 │  ├─ fields_extract.py       # Extrae fecha/proveedor/num con regex por tipo
 │  ├─ rename_and_route.py     # Renombra y enruta
+│  ├─ providers_sync.py       # Sincroniza Excel→JSON
 │  └─ main.py                 # CLI por etapas
 ├─ requirements.txt
 └─ .env.example               # Rutas/idioma OCR, etc.
@@ -50,13 +52,13 @@ pip install -r requirements.txt
 
 4) Configura `.env` según `.env.example` si necesitas ruta específica de Tesseract.
 
-## Excel de proveedores (`data/proveedores.xlsx`)
-
-Hoja: `Proveedores`
-- Proveedor | CIF | EstacionDestino (carpeta)
-- Ejemplo:
-  - ACME GASOLINERA S.A. | A12345678 | ES_Sevilla_001
-  - HIDROCARBUROS DEL SUR | B87654321 | ES_Malaga_014
+## Excel de proveedores (fuente) → JSON (cache)
+- Excel fuente: `data/Proveedores/Proveedores.xlsx`, hoja: `Proveedores`
+- Columnas: `Proveedor | CIF | EstacionDestino`
+- Generar/actualizar JSON:
+```powershell
+python -m src.main providers
+```
 
 ## Patrones por tipo (`patterns/patterns.yaml`)
 Ejemplo inicial:
@@ -78,10 +80,13 @@ Tipo_2:
 Desde la raíz del proyecto:
 
 ```powershell
+# 0) Sincronizar proveedores (Excel → JSON)
+python -m src.main providers
+
 # 1) Agrupar por tipo usando pHash
 python -m src.main cluster --max-hamming 5
 
-# 2) Vincular tipos con proveedores (revisa 'data/out/tipo_proveedor_map.csv')
+# 2) Vincular tipos con proveedores (usa providers.json; revisa 'data/out/tipo_proveedor_map.csv')
 python -m src.main link
 
 # 3) Extraer campos y renombrar preliminarmente
